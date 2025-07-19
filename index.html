@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Offline Chatbot</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            padding: 20px;
+            max-width: 700px;
+            margin: auto;
+            background: linear-gradient(to right, #f0f4f8, #dfe9f3);
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+
+        #topBar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        #logoutBtn {
+            padding: 6px 12px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        #logoutBtn:hover {
+            background-color: #c82333;
+        }
+
+        #chatBox {
+            border: 1px solid #ccc;
+            border-radius: 12px;
+            background-color: #ffffff;
+            padding: 15px;
+            max-height: 500px;
+            overflow-y: auto;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message {
+            padding: 10px 14px;
+            margin: 6px 0;
+            border-radius: 12px;
+            max-width: 85%;
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+
+        .user-message {
+            background-color: #d1e7dd;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+
+        .ai-message {
+            background-color: #f8d7da;
+            align-self: flex-start;
+            margin-right: auto;
+        }
+
+        #inputArea {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px; /* Added margin for new buttons below */
+        }
+
+        #userInput {
+            flex: 1;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #aaa;
+            border-radius: 8px;
+        }
+
+        .action-button { /* New style for action buttons */
+            padding: 8px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            margin: 0 5px; /* Spacing between buttons */
+        }
+
+        .action-button:hover {
+            background-color: #0056b3;
+        }
+
+        #newChatBtn {
+            background-color: #6c757d; /* Different color for New Chat */
+        }
+        #newChatBtn:hover {
+            background-color: #5a6268;
+        }
+    </style>
+</head>
+<body>
+    <div id="topBar">
+        <h2>Offline Chatbot</h2>
+        <button id="logoutBtn">Logout</button> </div>
+
+    <div id="chatBox"></div>
+
+    <div id="inputArea">
+        <input type="text" id="userInput" placeholder="Type your message..." autocomplete="off">
+        <button id="sendBtn">Send</button> </div>
+
+    <div id="chatActions" style="text-align: center; margin-top: 10px;">
+        <button id="loadHistoryBtn" class="action-button">Load Chat History</button>
+        <button id="newChatBtn" class="action-button">New Chat</button>
+    </div>
+
+    <script>
+        // Get references to elements
+        const chatBox = document.getElementById("chatBox");
+        const userInput = document.getElementById("userInput");
+        const sendBtn = document.getElementById("sendBtn");
+        const logoutBtn = document.getElementById("logoutBtn");
+        const loadHistoryBtn = document.getElementById("loadHistoryBtn"); // New
+        const newChatBtn = document.getElementById("newChatBtn");       // New
+
+        // Function to display a message in the chat window
+        function displayMessage(message, sender) {
+            const div = document.createElement("div");
+            // Determine class based on sender for styling
+            div.className = (sender === "user" || sender === "You") ? "user-message message" : "ai-message message";
+            div.innerText = message;
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight; // Scroll to bottom
+        }
+
+        // Function to save message to server (Node.js backend)
+        async function saveMessage(message, sender) {
+            try {
+                const response = await fetch("/save_message", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message: message, sender: sender }),
+                });
+                if (!response.ok) {
+                    console.error('Failed to save message:', response.statusText);
+                }
+            } catch (error) {
+                console.error('Error saving message:', error);
+            }
+        }
+
+        // --- Core Chat Logic ---
+        async function sendMessage() {
+            const input = userInput.value.trim();
+            if (!input) return;
+
+            displayMessage(input, "You"); // Display user message immediately
+            saveMessage(input, "user");   // Save user message to DB
+            userInput.value = "";         // Clear input field
+
+            // Display a "Thinking..." indicator
+            const typingIndicator = document.createElement("div");
+            typingIndicator.className = "ai-message message";
+            typingIndicator.innerText = "Thinking...";
+            chatBox.appendChild(typingIndicator);
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            try {
+                const res = await fetch("/get", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ msd: input }),
+                });
+
+                // Remove typing indicator before displaying actual response
+                if (chatBox.contains(typingIndicator)) {
+                    chatBox.removeChild(typingIndicator);
+                }
+
+                if (!res.ok) {
+                    const errorData = await res.json().catch(() => ({ error: "Unknown error" }));
+                    throw new Error(`AI backend error: ${res.status} - ${errorData.error}`);
+                }
+
+                const data = await res.json();
+                const aiResponse = data.response || "❌ Error from AI: No response generated.";
+                displayMessage(aiResponse, "AI"); // Display AI response
+                saveMessage(aiResponse, "ai");    // Save AI response to DB
+
+            } catch (err) {
+                // Ensure typing indicator is removed even on error
+                if (chatBox.contains(typingIndicator)) {
+                    chatBox.removeChild(typingIndicator);
+                }
+                console.error("Error communicating with AI backend:", err);
+                displayMessage(`❌ Error from AI: ${err.message || "Failed to get response."}`, "AI");
+                alert("Failed to send message to AI. Please check the backend server.");
+            }
+        }
+
+        // --- New: Load History Function ---
+        async function loadChatHistory() {
+            chatBox.innerHTML = ''; // Clear current chat display
+            displayMessage('Loading chat history...', 'System');
+
+            try {
+                const res = await fetch("/history");
+                if (!res.ok) {
+                    throw new Error(`HTTP error! status: ${res.status}`);
+                }
+                const data = await res.json();
+
+                // Remove loading indicator
+                if (chatBox.lastChild && chatBox.lastChild.innerText === 'System: Loading chat history...') {
+                    chatBox.removeChild(chatBox.lastChild);
+                }
+
+                if (data.history && Array.isArray(data.history)) {
+                    if (data.history.length === 0) {
+                        displayMessage('No previous chat history found.', 'System');
+                    } else {
+                        data.history.forEach(({ message, sender }) => {
+                            displayMessage(message, sender === "user" ? "You" : "AI");
+                        });
+                        displayMessage('Chat history loaded!', 'System');
+                    }
+                } else {
+                    console.warn("Chat history is empty or invalid format.");
+                    displayMessage('No previous chat history found or invalid data.', 'System');
+                }
+                chatBox.scrollTop = chatBox.scrollHeight;
+            } catch (e) {
+                console.error("Failed to load chat history:", e);
+                displayMessage('Failed to load chat history. Please try again.', 'System');
+                // Optionally redirect if session expired, etc.
+                // window.location.href = "/signin"; // Uncomment if you want automatic redirect on history load failure
+            }
+        }
+
+        // --- New: Start New Chat Function ---
+        function startNewChat() {
+            chatBox.innerHTML = ''; // Clear all messages
+            displayMessage('Welcome! Start a new chat or click "Load Chat History" to see past conversations.', 'System');
+            userInput.value = ''; // Clear user input
+        }
+
+        // --- Logout Function ---
+        async function logout() {
+            try {
+                const res = await fetch("/logout", { method: "POST" });
+                if (!res.ok) {
+                    throw new Error(`Logout failed with status: ${res.status}`);
+                }
+                window.location.href = "/login"; // Redirect to login after successful logout
+            } catch (e) {
+                console.error("Logout failed:", e);
+                alert("Logout failed. Please try again.");
+            }
+        }
+
+        // --- Event Listeners (moved from inline onclick) ---
+        userInput.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+                sendMessage();
+            }
+        });
+        sendBtn.addEventListener("click", sendMessage);
+        logoutBtn.addEventListener("click", logout);
+        loadHistoryBtn.addEventListener("click", loadChatHistory); // New listener
+        newChatBtn.addEventListener("click", startNewChat);       // New listener
+
+        // --- Initial setup on page load ---
+        window.onload = function () {
+            startNewChat(); // Start a new chat automatically when the page loads
+        };
+    </script>
+</body>
+</html>

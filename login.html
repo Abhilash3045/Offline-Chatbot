@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #667eea, #764ba2);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .container {
+      background: white;
+      padding: 30px 40px;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    input[type="email"],
+    input[type="password"] {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0 20px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background-color: #28a745;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #218838;
+    }
+
+    p {
+      margin-top: 16px;
+      font-size: 14px;
+    }
+
+    a {
+      color: #007bff;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .error-message {
+      color: #dc3545;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Login</h2>
+    <form id="loginForm"> <input type="email" name="email" placeholder="Email" required />
+      <input type="password" name="password" placeholder="Password" required />
+      <button type="submit">Login</button>
+    </form>
+    <div id="loginErrorMessage" class="error-message"></div> <p>Don't have an account? <a href="/signin">Sign In</a></p>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const loginForm = document.getElementById('loginForm');
+      const errorMessageDiv = document.getElementById('loginErrorMessage');
+
+      if (loginForm) {
+        loginForm.addEventListener('submit', async (event) => {
+          event.preventDefault(); // Prevent default HTML form submission
+
+          const formData = new FormData(loginForm);
+          const email = formData.get('email');
+          const password = formData.get('password');
+
+          errorMessageDiv.textContent = ''; // Clear previous errors
+
+          try {
+            const response = await fetch('/login', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ email, password })
+            });
+
+            const data = await response.json(); // Parse the JSON response
+
+            if (response.ok) { // Check for HTTP status 2xx (success)
+              if (data.success) {
+                window.location.href = data.redirectUrl; // Redirect on success
+              }
+            } else {
+              // Handle server-sent errors (e.g., 400, 401, 500)
+              if (data.error) {
+                errorMessageDiv.textContent = data.error; // Display the specific error message
+              } else {
+                errorMessageDiv.textContent = 'An unexpected error occurred during login.';
+              }
+            }
+          } catch (error) {
+            console.error('Network error or problem fetching:', error);
+            errorMessageDiv.textContent = 'Could not connect to the server. Please try again.';
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>

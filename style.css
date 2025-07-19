@@ -1,0 +1,93 @@
+/* Reset & base */
+* {
+  box-sizing: border-box;
+}
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #f0f2f5;
+  margin: 0;
+  padding: 0;
+}
+
+/* Containers */
+.container {
+  max-width: 480px;
+  margin: 50px auto;
+  background: white;
+  padding: 20px 30px;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+
+/* Auth */
+.auth-container h2 {
+  margin-bottom: 20px;
+  text-align: center;
+  color: #333;
+}
+
+.auth-container form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.auth-container input {
+  padding: 12px 15px;
+  font-size: 16px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  transition: border-color 0.3s ease;
+}
+
+.auth-container input:focus {
+  outline: none;
+  border-color: #5a9;
+}
+
+.auth-container button {
+  padding: 12px;
+  background: #5a9;
+  color: white;
+  font-weight: bold;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background 0.3s ease;
+}
+
+.auth-container button:hover {
+  background: #4a8;
+}
+
+.auth-container p {
+  text-align: center;
+  margin-top: 15px;
+  font-size: 14px;
+  color: #555;
+}
+
+.auth-container p a {
+  color: #5a9;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.auth-container p a:hover {
+  text-decoration: underline;
+}
+
+.error {
+  color: #d9534f;
+  font-weight: 600;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+/* Chatbot */
+
+.chatbot-container {
+  max-width: 600px;
+  margin:0;
+}
